@@ -64,11 +64,21 @@ def _get_entry_file():
 	fname = time.strftime("%Y%m%d%H%M") + JOURNALEXT
 	return os.path.join(os.path.abspath(JOURNALDIR), fname) 
 
-def new_entry():
+def new_entry(args):
 
 	#create temp file, but we're just passing the file name to another program
 	fd, tempf = tempfile.mkstemp()
 	os.close(fd)
+
+	outfile = None
+
+	#check options, probably could do this elsewhere after restructuring
+	if args.dir is not None:
+		global JOURNALDIR
+		JOURNALDIR = args.dir
+
+	if args.output is not None:
+		outfile = args.output
 
 	#spawn editor program
 	try:
@@ -82,9 +92,12 @@ def new_entry():
 			raise err
 	#some programs like gedit return 0 even though it hasn't actually closed
 	#in addition, this lets you do whatever you want with the temp file before it's encrypted
-	input("Press Enter when done editing.")
+	input("Press Enter when done editing.")	
 
-	encrypt(tempf, _get_entry_file())
+	if outfile is None:
+		outfile = _get_entry_file()
+
+	encrypt(tempf, outfile)
 	
 	del_tempfile(tempf)
 	
@@ -102,22 +115,27 @@ def edit_entry():
 parser = argparse.ArgumentParser(description=HELPTEXT, epilog=EPILOG)
 subparsers = parser.add_subparsers()
 #the problem with subparsers is that they are mandatory and you can't just output help if none are used
+#XXX fix somehow? maybe just try/except: pass; 
 
-#journal.py add [args]
+##journal.py add [args]
 add_entry_parser = subparsers.add_parser("add", help="create a journal entry")
 
-add_entry_parser.set_defaults(action=new_entry())
+add_entry_parser.set_defaults(action=new_entry)
 
-#journal.py view [args]
+#output options. 
+add_entry_parser.add_argument("-d", "--dir", help="Directory in which the journal files should go.")
+add_entry_parser.add_argument("-o", "--output", help="Output the journal file directly to a specific file.")
+
+##journal.py view [args]
 view_entry_parser = subparsers.add_parser("view", help="view a journal entry")
 
-view_entry_parser.set_defaults(action=view_entry())
+view_entry_parser.set_defaults(action=view_entry)
 
-#journal.py edit [args]
+##journal.py edit [args]
 edit_entry_parser = subparsers.add_parser("edit", help="edit a journal entry")
 
-edit_entry_parser.set_defaults(action=edit_entry())
+edit_entry_parser.set_defaults(action=edit_entry)
 
 #parse command line args and execute proper function
 args = parser.parse_args()
-args.action()
+args.action(args)
