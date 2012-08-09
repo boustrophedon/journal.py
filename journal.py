@@ -87,33 +87,28 @@ def spawn_editor(temp_file):
 
 #---
 
-def _get_entry_file():
+def _get_entry_file(journal_dir):
 	#file name is year month day hour minute in such a way that when sorted alphanumerically, oldest comes first
 	fname = time.strftime("%Y%m%d%H%M") + JOURNALEXT
-	return os.path.join(os.path.abspath(JOURNALDIR), fname) 
+	return os.path.join(os.path.abspath(journal_dir), fname) 
 
 def new_entry(args):
 
 	temp_file = create_tempfile()
-	entry_file = None
 
 	#check options, probably could do this elsewhere after restructuring
-	if args.dir is not None:
-		global JOURNALDIR
-		JOURNALDIR = args.dir
+	journal_dir = args.dir
+	entry_file = args.output
 
-	if args.output is not None:
-		entry_file = args.output
-
-	#spawn editor program
 	spawn_editor(temp_file)
 
-	#some programs like gedit return 0 even though it hasn't actually closed
-	#in addition, this lets you do whatever you want with the temp file before it's encrypted
+	#this lets you do whatever you want with the temp file before it's encrypted
 	input("Press Enter when done editing.")	
 
+	#currently do this here so that it is created at the right time, and not when args are parsed
+	#may be better the other way though, since the fs keeps track of date created
 	if entry_file is None:
-		entry_file = _get_entry_file()
+		entry_file = _get_entry_file(journal_dir)
 
 	encrypt(temp_file, entry_file)
 	
@@ -151,11 +146,15 @@ add_entry_parser = subparsers.add_parser("add", help="Create a journal entry")
 add_entry_parser.set_defaults(action=new_entry)
 
 #output options. 
-add_entry_parser.add_argument("-d", "--dir", help="Directory in which the journal files should go.")
-add_entry_parser.add_argument("-o", "--output", help="Output the journal file directly to a specific file.")
+add_entry_parser.add_argument("-d", "--dir", default=JOURNALDIR, help="Directory in which the journal files are stored. Default is current directory.")
+add_entry_parser.add_argument("-o", "--output", help="Journal entry file output name. Default is YYYYMMDDHHMM.jrn.")
 
 ##journal.py view [args]
 view_entry_parser = subparsers.add_parser("view", help="View a journal entry")
+
+#options
+view_entry_parser.add_argument("-d", "--dir", default=JOURNALDIR, help="Directory in which the journal files are stored. Default is current directory.")
+view_entry_parser.add_argument("-i", "--input", help="Journal entry id to view. Default is latest.")
 
 view_entry_parser.set_defaults(action=view_entry)
 
