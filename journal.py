@@ -18,9 +18,7 @@ journal.py attemps to be a simple-as-possible-but-not-simpler personal diary pro
 """
 EPILOG = \
 """
-Copyright Harry Stern 2012
-
-Released under the MIT License <http://opensource.org/licenses/MIT>
+(c) 2012 Harry Stern and released under the MIT License <http://opensource.org/licenses/MIT>
 """
 
 ####--------####
@@ -28,6 +26,8 @@ Released under the MIT License <http://opensource.org/licenses/MIT>
 ####--------####
 JOURNALDIR = "."
 TEMPDIR = None #uses tempfile.mkstemp()'s default directory when None
+
+JOURNALFMT = "%Y%m%d%H%M"
 JOURNALEXT = ".jrn"
 
 EDITORCMD = "nano %(file)s"
@@ -38,6 +38,7 @@ EDITORCMD = "nano %(file)s"
 
 def create_tempfile():
 	#create temp file, but we're just passing the file name to another program
+	#mostly it's for the os-independent file creation
 	fd, tempf = tempfile.mkstemp(text=True)
 	os.close(fd)
 
@@ -45,32 +46,36 @@ def create_tempfile():
 
 def del_tempfile(temp_file):
 
-	#first, try using shred if on Linux
+	#first, try using shred
 	#shred is not a panacea; in particular, on some journaled filesystems it is kind of useless
 	#unless you can guarantee the fs journal is also overwritten
-	if os.uname()[0] == 'Linux':
-		try:
-			subprocess.call(['shred', temp_file]) #i am probably missing some important option or something here
-		except OSError as err:
-			if err.errno == 2:
-				pass
-			else:
-				raise err
+	try:
+		subprocess.call(['shred', temp_file]) #i am probably missing some important option or something here
+	except OSError as err:
+		if err.errno == 2:
+			pass
+		else:
+			raise err
 	#XXX find out what to do on windows
+
 	try:
 		os.unlink(temp_file)
-	except OSError: #only on Windows, according to python docs, so I haven't tested
+	except OSError:
 		pass
 
 #---
 
 def encrypt(temp_file, entry_file):
 	#--no-use-agent is because gpg complains when gpg-agent isn't running
-	#XXX should add option for other ciphers, though really you should configure that in .gnugp/gpg.conf
+	#--no-mdc-warning is so that gpg doesn't complain about MDC integrity protection (which is irrelevant)
+	#--quiet suppresses messages telling you what algorithm the file is encrypted with
+	#XXX should add option for other ciphers, though really you should configure that in .gnupg/gpg.conf
 	subprocess.call(["gpg", "--no-use-agent", "--output", entry_file, "--symmetric", temp_file])
 
 def decrypt(entry_file, temp_file):
-	subprocess.call(["gpg", "--no-use-agent", "--output", temp_file, "--decrypt", entry_file])
+	#--yes is because we create the tempfile outside of gpg for convenience but then it asks "do you want to overwrite"
+	#the empty file we just created
+	subprocess.call(["gpg", "--no-use-agent","--no-mdc-warning", "--yes", "--quiet", "--output", temp_file, "--decrypt", entry_file])
 
 #---
 
@@ -80,16 +85,19 @@ def spawn_editor(temp_file):
 		subprocess.call(command)
 	except OSError as err:
 		if err.errno == 2: #"No such file or directory", program doesn't exist.
-			print "editor command failed: file not found. exiting."
+			print "Editor command failed: File not found. exiting."
 			sys.exit()
 		else:
 			raise err
+
+	#this lets you do whatever you want with the temp file before it's encrypted/deleted
+	input("Press Enter when done.")
 
 #---
 
 def _get_entry_file(journal_dir):
 	#file name is year month day hour minute in such a way that when sorted alphanumerically, oldest comes first
-	fname = time.strftime("%Y%m%d%H%M") + JOURNALEXT
+	fname = time.strftime(JOURNALFMT) + JOURNALEXT
 	return os.path.join(os.path.abspath(journal_dir), fname) 
 
 def new_entry(args):
@@ -100,10 +108,7 @@ def new_entry(args):
 	journal_dir = args.dir
 	entry_file = args.output
 
-	spawn_editor(temp_file)
-
-	#this lets you do whatever you want with the temp file before it's encrypted
-	input("Press Enter when done editing.")	
+	spawn_editor(temp_file)	
 
 	#currently do this here so that it is created at the right time, and not when args are parsed
 	#may be better the other way though, since the fs keeps track of date created
@@ -116,15 +121,35 @@ def new_entry(args):
 
 #---
 
+def _get_latest_entry(journal_dir):
+	#get all files in journal directory whose extension is the right one
+	files = (f for f in os.listdir(journal_dir) if os.path.splitext(f)[1] == JOURNALEXT)
+
+	#return a sorted list of the last modified times of the files, largest (i.e. most recent) first
+	times = sorted(((f, os.path.getmtime(f)) for f in files), key=lambda f: f[1], reverse=True)
+	
+	if times:
+		return times[0][0]
+	else:
+		print "No journal entries found. Exiting."
+		sys.exit()
+
 def view_entry(args):
 	temp_file = create_tempfile()
 
-	### outline
-	#args.input = entry_file
-	#decrypt(entry_file, temp_file)
-	#os.chmod(entry_file, stat.S_IREAD) so that you don't get any funny ideas
-	#wait for input("press enter etc.") possibly put an option for not waiting or even a timer? timer is too complex
-	#del_tempfile(temp_file)
+	#options
+	journal_dir = args.dir
+	entry_file = args.entry
+
+	if entry_file is None:
+		entry_file = _get_latest_entry(journal_dir)
+
+	decrypt(entry_file, temp_file)
+	os.chmod(entry_file, stat.S_IREAD) #ro so that you don't get any funny ideas
+
+	spawn_editor(temp_file)
+
+	del_tempfile(temp_file)
 	
 #---
 
@@ -137,6 +162,7 @@ def edit_entry():
 ####--------####
 parser = argparse.ArgumentParser(description=HELPTEXT, epilog=EPILOG)
 subparsers = parser.add_subparsers()
+
 #the problem with subparsers is that they are mandatory and you can't just output help if none are used
 #XXX fix somehow? maybe just try/except: pass; 
 
@@ -154,7 +180,7 @@ view_entry_parser = subparsers.add_parser("view", help="View a journal entry")
 
 #options
 view_entry_parser.add_argument("-d", "--dir", default=JOURNALDIR, help="Directory in which the journal files are stored. Default is current directory.")
-view_entry_parser.add_argument("-i", "--input", help="Journal entry id to view. Default is latest.")
+view_entry_parser.add_argument("entry", help="Journal entry id to view. Default is latest.")
 
 view_entry_parser.set_defaults(action=view_entry)
 
