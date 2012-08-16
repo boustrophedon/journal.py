@@ -1,0 +1,15 @@
+journal.py attemps to be a simple-as-possible-but-not-simpler personal diary program using gpg for encryption. To that end, the entire program is contained in a single file, and the only dependencies are this file, python 2.7 or greater, and gpg. An effort has been made to allow almost any text editing program to be used in conjunction with journal.py.
+
+Essentially, it is just a thin wrapper over gpg's --symmetric functionality that also handles naming and moving around the actual files for you.
+
+However, the cost of being able to use practically any text editor is that we have to write the file to disk unencrypted at some point. Thus, several precautions should be taken if you are really paranoid:
+
+- Disable autosave features that write to a different file. 
+- Mount your /tmp dir (or whichever temp dir you choose to use) as a tempfs, or use a USB drive or something that keeps you from writing the unencrypted files to the same disk you are storing the encrypted ones.
+- Make sure you have shred installed.
+- If you're really crazy, turn off journaling on the partition you're writing the unencrypted file to. 
+
+- Alternatively, carry around a micro SD card and card reader at all times and write everything to that and never mount it on any untrusted computers and be sure to wrap it in tin foil so that *they* can't leech the bits out with their evil conspiracy devices.
+
+
+Have fun with your journals.
