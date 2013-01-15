@@ -147,8 +147,6 @@ def edit_entry(args):
         entry_file = _get_latest_entry(journal_dir)
 
     decrypt(entry_file, temp_file)
-    if ro:
-        os.chmod(temp_file, stat.S_IREAD)  # works on windows
 
     spawn_editor(temp_file)
 
