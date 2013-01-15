@@ -24,7 +24,7 @@ EPILOG = """
 """
 
 #    config    #
-JOURNALDIR = "."
+JOURNALDIR = os.getcwd()
 TEMPDIR = None  # uses tempfile.mkstemp()'s default directory when None
 
 JOURNALFMT = "%Y%m%d%H%M"
@@ -65,17 +65,16 @@ def del_tempfile(temp_file):
 
 
 def encrypt(temp_file, entry_file):
-    #--no-use-agent is because we don't need gpg-agent
     #--no-mdc-warning is because MDC integrity protection is irrelevant in our case
     #--quiet suppresses messages telling you what algorithm the file is encrypted with
     #XXX should add option for other ciphers, though really you should configure that in .gnupg/gpg.conf
-    subprocess.call(["gpg", "--no-use-agent", "--output", entry_file, "--symmetric", temp_file])
+    subprocess.call(["gpg", "--yes", "--output", entry_file, "--symmetric", temp_file])
 
 
 def decrypt(entry_file, temp_file):
     #--yes is because gpg asks "do you want to overwrite"
     #the empty temp file we just created
-    subprocess.call(["gpg", "--no-use-agent", "--no-mdc-warning", "--yes", "--quiet", "--output", temp_file, "--decrypt", entry_file])
+    subprocess.call(["gpg", "--no-mdc-warning", "--yes", "--quiet", "--output", temp_file, "--decrypt", entry_file])
 
 #---
 
@@ -137,27 +136,25 @@ def _get_latest_entry(journal_dir):
         sys.exit()
 
 
-def view_entry(args):
+def edit_entry(args):
     temp_file = create_tempfile()
 
     journal_dir = args.dir
     entry_file = args.entry
+    ro = args.read_only
 
-    if entry_file is None:
+    if entry_file == "last":
         entry_file = _get_latest_entry(journal_dir)
 
     decrypt(entry_file, temp_file)
-    os.chmod(entry_file, stat.S_IREAD)  # ro so that you don't get any funny ideas, does work on windows
+    if ro:
+        os.chmod(temp_file, stat.S_IREAD)  # works on windows
 
     spawn_editor(temp_file)
 
+    if not ro:
+        encrypt(temp_file, entry_file)
     del_tempfile(temp_file)
-
-#---
-
-
-def edit_entry():
-    pass
 
 
 #    parser    #
@@ -169,31 +166,29 @@ subparsers = parser.add_subparsers()
 #also they're kind of convoluted and stupid
 
 ##journal.py add [args]
-add_entry_parser = subparsers.add_parser("add", help="Create a journal entry.")
-add_entry_parser.set_defaults(cmd=new_entry)
+new_entry_parser = subparsers.add_parser("new", help="Create a journal entry.")
+new_entry_parser.set_defaults(cmd=new_entry)
 
 #options
-add_entry_parser.add_argument("-d", "--dir", default=JOURNALDIR,
+new_entry_parser.add_argument("-d", "--dir", default=JOURNALDIR,
         help="Directory in which the journal files are stored. Default is current directory.")
 
-add_entry_parser.add_argument("-o", "--output",
+new_entry_parser.add_argument("-o", "--output",
         help="Journal entry file output name. Default is YYYYMMDDHHMM.jrn.")
 
 ##journal.py view [args]
-view_entry_parser = subparsers.add_parser("view", help="View a journal entry.")
-view_entry_parser.set_defaults(cmd=view_entry)
-
-#options
-view_entry_parser.add_argument("-d", "--dir", default=JOURNALDIR,
-        help="Directory in which the journal files are stored. Default is current directory.")
-
-view_entry_parser.add_argument("entry",
-        help="Journal entry id to view. Default is latest.")
-
-##journal.py edit [args]
-edit_entry_parser = subparsers.add_parser("edit", help="Edit a journal entry".)
+edit_entry_parser = subparsers.add_parser("edit", help="Edit a journal entry.")
 edit_entry_parser.set_defaults(cmd=edit_entry)
 
+#options
+edit_entry_parser.add_argument("entry", default="last", nargs="?",
+        help="Journal file to edit. Default is latest.")
+
+edit_entry_parser.add_argument("-d", "--dir", default=JOURNALDIR,
+        help="Directory in which the journal files are stored. Default is current directory.")
+
+edit_entry_parser.add_argument("-r", "--read-only", default=False, action='store_true',
+        help="Open journal entry as read only.")
 
 if __name__ == '__main__':
     args = parser.parse_args()

@@ -2,14 +2,13 @@ journal.py attemps to be a simple-as-possible-but-not-simpler personal journal p
 
 Essentially, it is just a thin wrapper over gpg's --symmetric functionality that also handles naming and moving around the actual files for you.
 
-However, the cost of being able to use any text editor is that we have to write the file unencrypted at some point. Thus, several precautions should be taken if you are really paranoid:
+However, the cost of being able to use any text editor is that we have to write the file unencrypted at some point. Several precautions should be taken if you are really paranoid:
 
 - Disable autosave features that write to a different file. 
 - Mount your /tmp dir (or whichever temp dir you choose to use) as a tmpfs, or use a USB drive or something that keeps you from writing the unencrypted files to the same disk you are storing the encrypted ones. This also prevents data leakage in the case of a crash before the unencrypted file is deleted. 
 - Make sure you have shred installed, especially if you are not using a tmpfs.
 - If you're really crazy, turn off journaling on the partition you're writing the unencrypted file to. 
 
-- Alternatively, carry around a micro SD card and card reader at all times and write everything to that and never mount it on any untrusted computers.
-
+Obviously, encryption doesn't matter if someone has access to your machine while it is running; they could just intercept the keystrokes as you type. Encryption is only good at preventing access after it's been written.
 
 Have fun with your journals.
