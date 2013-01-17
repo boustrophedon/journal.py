@@ -1,6 +1,8 @@
 journal.py attemps to be a simple-as-possible-but-not-simpler personal journal program using gpg for encryption. To that end, the entire program is contained in a single file, and the only required dependencies are this file, python 2.7 or greater, and gpg. An effort has been made to allow almost any text editing program to be used in conjunction with journal.py.
 
-Essentially, it is just a thin wrapper over gpg's --symmetric functionality that also handles naming and moving around the actual files for you.
+Currently, you also need to have a keypair generated in gpg: it is as simple as typing "gpg --gen-key" and choosing the default selections.
+
+Essentially, it is just a convenient, thin wrapper over gpg's public-key encryption that also handles naming and moving around the actual files for you.
 
 However, the cost of being able to use any text editor is that we have to write the file unencrypted at some point. Several precautions should be taken if you are really paranoid:
 
@@ -10,5 +12,9 @@ However, the cost of being able to use any text editor is that we have to write 
 - If you're really crazy, turn off journaling on the partition you're writing the unencrypted file to. 
 
 Obviously, encryption doesn't matter if someone has access to your machine while it is running; they could just intercept the keystrokes as you type. Encryption is only good at preventing access after it's been written.
+
+If you are reading this and know more about this sort of thing than I do (which you probably do) I would love to know:
+- If there's a better way, using the tempfile library or something else, to create "more temporary" files that I can still pass to arbitrary programs.
+- Other suggestions.
 
 Have fun with your journals.

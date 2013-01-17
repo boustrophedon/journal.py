@@ -65,16 +65,17 @@ def del_tempfile(temp_file):
 
 
 def encrypt(temp_file, entry_file):
-    #--no-mdc-warning is because MDC integrity protection is irrelevant in our case
-    #--quiet suppresses messages telling you what algorithm the file is encrypted with
-    #XXX should add option for other ciphers, though really you should configure that in .gnupg/gpg.conf
-    subprocess.call(["gpg", "--yes", "--output", entry_file, "--symmetric", temp_file])
+    #--quiet only suppresses messages telling you what algorithm the file is encrypted with
+    # XXX for below as well, catch error return values
+    subprocess.call(["gpg", "--yes", "--quiet", "--output", entry_file,
+                    "--encrypt", "--default-recipient-self", temp_file])
 
 
 def decrypt(entry_file, temp_file):
     #--yes is because gpg asks "do you want to overwrite"
     #the empty temp file we just created
-    subprocess.call(["gpg", "--no-mdc-warning", "--yes", "--quiet", "--output", temp_file, "--decrypt", entry_file])
+    subprocess.call(["gpg", "--yes", "--quiet", "--output", temp_file,
+                    "--decrypt", entry_file])
 
 #---
 
