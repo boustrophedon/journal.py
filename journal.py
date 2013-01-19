@@ -67,15 +67,17 @@ def del_tempfile(temp_file):
 def encrypt(temp_file, entry_file):
     #--quiet only suppresses messages telling you what algorithm the file is encrypted with
     # XXX for below as well, catch error return values
-    subprocess.call(["gpg", "--yes", "--quiet", "--output", entry_file,
-                    "--encrypt", "--default-recipient-self", temp_file])
+    return subprocess.call(["gpg", "--yes", "--quiet", "--output", entry_file,
+                            "--encrypt", "--default-recipient-self", temp_file])
 
 
 def decrypt(entry_file, temp_file):
     #--yes is because gpg asks "do you want to overwrite"
     #the empty temp file we just created
-    subprocess.call(["gpg", "--yes", "--quiet", "--output", temp_file,
-                    "--decrypt", entry_file])
+    return subprocess.call(["gpg", "--yes", "--quiet", "--output", temp_file,
+                            "--decrypt", entry_file])
+
+    
 
 #---
 
@@ -147,7 +149,11 @@ def edit_entry(args):
     if entry_file == "last":
         entry_file = _get_latest_entry(journal_dir)
 
-    decrypt(entry_file, temp_file)
+    retval = decrypt(entry_file, temp_file)
+
+    if retval != 0:
+        print("Exiting.")
+        sys.exit()
 
     spawn_editor(temp_file)
 
@@ -172,10 +178,10 @@ new_entry_parser.set_defaults(cmd=new_entry)
 new_entry_parser.add_argument("-d", "--dir", default=JOURNALDIR,
         help="Directory in which the journal files are stored. Default is current directory.")
 
-new_entry_parser.add_argument("-o", "--output",
+new_entry_parser.add_argument("-o", "--output", 
         help="Journal entry file output name. Default is YYYYMMDDHHMM.jrn.")
 
-##journal.py view [args]
+##journal.py edit [args]
 edit_entry_parser = subparsers.add_parser("edit", help="Edit a journal entry.")
 edit_entry_parser.set_defaults(cmd=edit_entry)
 
