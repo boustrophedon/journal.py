@@ -1,4 +1,4 @@
-journal.py attemps to be a simple-as-possible-but-not-simpler personal journal program using gpg for encryption. To that end, the entire program is contained in a single file, and the only required dependencies are this file, python 2.7 or greater, and gpg. An effort has been made to allow almost any text editing program to be used in conjunction with journal.py.
+journal.py attempts to be a simple-as-possible-but-not-simpler personal journal program using gpg for encryption. To that end, the entire program is contained in a single file, and the only required dependencies are this file, python 2.7 or greater, and gpg. An effort has been made to allow almost any text editing program to be used in conjunction with journal.py.
 
 Currently, you also need to have a keypair generated in gpg: it is as simple as typing "gpg --gen-key" and choosing the default selections.
 

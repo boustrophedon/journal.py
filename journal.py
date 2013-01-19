@@ -14,7 +14,7 @@ try: input = raw_input;  # 2.x and 3.x compatibility hack
 except: pass;
 
 HELPTEXT = """
-journal.py attemps to be a simple-as-possible-but-not-simpler personal diary program using gpg for encryption. \
+journal.py attempts to be a simple-as-possible-but-not-simpler personal journal program using gpg for encryption. \
 To that end, the entire program is contained in a single file, and the only dependencies are this file, python 2.7 or greater, and gpg.\
 An effort has been made to allow almost any text editing program to be used in conjunction with journal.py.
 """
