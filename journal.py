@@ -27,7 +27,7 @@ EPILOG = """
 JOURNALDIR = os.getcwd()
 TEMPDIR = None  # uses tempfile.mkstemp()'s default directory when None
 
-JOURNALFMT = "%Y%m%d%H%M"
+JOURNALFMT = "%Y-%m-%d-%H%M"
 JOURNALEXT = ".jrn"
 
 EDITORCMD = "nano %(file)s"
